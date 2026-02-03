@@ -6,130 +6,190 @@
     <title>Controle Financeiro - Caio & Itallo</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-handshake"></i> Controle Financeiro Caio & Itallo</h1>
-            <p class="subtitle">Registro de empréstimos e pagamentos entre amigos</p>
+            <h1><i class="fas fa-handshake"></i> Controle Financeiro</h1>
+            <p class="subtitle">Caio & Itallo - Dados salvos localmente</p>
+            <div class="warning-mobile">
+                <i class="fas fa-exclamation-triangle"></i> 
+                <span>Atenção: Dados salvos apenas neste navegador</span>
+            </div>
         </header>
         
         <div class="saldo-container">
             <div class="saldo-card caio">
                 <div class="saldo-titulo">Saldo de Caio</div>
                 <div class="saldo-valor" id="saldo-caio">R$ 0,00</div>
-                <div class="saldo-descricao" id="descricao-caio">Nenhuma movimentação registrada</div>
+                <div class="saldo-descricao" id="descricao-caio">Nenhuma movimentação</div>
             </div>
             
             <div class="saldo-card itallo">
                 <div class="saldo-titulo">Saldo de Itallo</div>
                 <div class="saldo-valor" id="saldo-itallo">R$ 0,00</div>
-                <div class="saldo-descricao" id="descricao-itallo">Nenhuma movimentação registrada</div>
+                <div class="saldo-descricao" id="descricao-itallo">Nenhuma movimentação</div>
             </div>
         </div>
         
         <div class="form-container">
             <h2><i class="fas fa-plus-circle"></i> Nova Movimentação</h2>
             <form id="form-movimentacao">
-                <div class="form-group">
-                    <label for="tipo">Tipo de Movimentação</label>
-                    <select id="tipo" required>
-                        <option value="" disabled selected>Selecione o tipo</option>
-                        <option value="emprestimo">Empréstimo (uma pessoa para a outra)</option>
-                        <option value="pagamento">Pagamento (devolução do valor)</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tipo">Tipo</label>
+                        <select id="tipo" required>
+                            <option value="" disabled selected>Selecione</option>
+                            <option value="emprestimo">Empréstimo</option>
+                            <option value="pagamento">Pagamento</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="valor">Valor (R$)</label>
+                        <input type="number" id="valor" min="0.01" step="0.01" placeholder="100.50" required>
+                    </div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Direção da Movimentação</label>
+                    <label>Direção</label>
                     <div class="radio-group" id="direcao-container">
                         <div class="radio-option">
                             <input type="radio" id="caio-para-itallo" name="direcao" value="caio-para-itallo" required>
-                            <label for="caio-para-itallo">Caio → Itallo</label>
+                            <label for="caio-para-itallo"><span class="mobile-label">Caio →</span><span class="desktop-label">Caio para Itallo</span></label>
                         </div>
                         <div class="radio-option">
                             <input type="radio" id="itallo-para-caio" name="direcao" value="itallo-para-caio" required>
-                            <label for="itallo-para-caio">Itallo → Caio</label>
+                            <label for="itallo-para-caio"><span class="mobile-label">Itallo →</span><span class="desktop-label">Itallo para Caio</span></label>
                         </div>
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="valor">Valor (R$)</label>
-                    <input type="number" id="valor" min="0.01" step="0.01" placeholder="Ex: 100.50" required>
-                </div>
-                
-                <div class="form-group">
                     <label for="descricao">Descrição (opcional)</label>
-                    <input type="text" id="descricao" placeholder="Ex: Dinheiro para o almoço">
+                    <input type="text" id="descricao" placeholder="Ex: Dinheiro para almoço">
                 </div>
                 
-                <div class="form-group">
-                    <label for="data">Data da Movimentação</label>
-                    <input type="date" id="data" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="senha">Senha de acesso</label>
-                    <input type="password" id="senha" placeholder="Digite a senha compartilhada" required>
-                    <small class="form-text">Use a mesma senha que o Itallo para acessar os dados</small>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data">Data</label>
+                        <input type="date" id="data" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="hora">Hora</label>
+                        <input type="time" id="hora" required>
+                    </div>
                 </div>
                 
                 <button type="submit" id="btn-registrar">
-                    <i class="fas fa-save"></i> Registrar Movimentação
+                    <i class="fas fa-save"></i> <span class="btn-text">Registrar Movimentação</span>
                 </button>
                 <button type="button" id="btn-limpar" class="btn-limpar">
-                    <i class="fas fa-broom"></i> Limpar Formulário
+                    <i class="fas fa-broom"></i> <span class="btn-text">Limpar Formulário</span>
                 </button>
             </form>
             
             <div class="data-controls">
                 <button type="button" id="btn-exportar" class="btn-exportar">
-                    <i class="fas fa-download"></i> Exportar Dados
+                    <i class="fas fa-download"></i> <span>Exportar</span>
                 </button>
                 <button type="button" id="btn-importar" class="btn-importar">
-                    <i class="fas fa-upload"></i> Importar Dados
+                    <i class="fas fa-upload"></i> <span>Importar</span>
+                </button>
+                <button type="button" id="btn-sincronizar" class="btn-sincronizar">
+                    <i class="fas fa-sync-alt"></i> <span>Sincronizar</span>
                 </button>
                 <input type="file" id="import-file" accept=".json" style="display: none;">
+            </div>
+            
+            <div class="data-info">
+                <p><i class="fas fa-info-circle"></i> Dados salvos localmente neste navegador</p>
+                <p><i class="fas fa-exclamation-triangle"></i> Para acessar em outro dispositivo: Exporte → Envie o arquivo → Importe</p>
             </div>
         </div>
         
         <div class="historico-container">
-            <h2><i class="fas fa-history"></i> Histórico de Movimentações</h2>
+            <div class="historico-header">
+                <h2><i class="fas fa-history"></i> Histórico</h2>
+                <div class="historico-stats">
+                    <span id="total-movimentacoes">0 movimentações</span>
+                    <button id="btn-filtrar" class="btn-filtrar">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                </div>
+            </div>
             
             <div id="historico-tabela-container">
-                <table class="historico-tabela">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Descrição</th>
-                            <th>Direção</th>
-                            <th>Valor</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historico-corpo">
-                        <!-- As linhas serão adicionadas via JavaScript -->
-                    </tbody>
-                </table>
+                <div class="table-container">
+                    <table class="historico-tabela">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Descrição</th>
+                                <th>Direção</th>
+                                <th>Valor</th>
+                                <th class="mobile-hidden">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historico-corpo">
+                            <!-- As linhas serão adicionadas via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
                 <div id="sem-dados" class="sem-dados">
                     <i class="fas fa-clipboard-list fa-2x"></i>
-                    <p>Nenhuma movimentação registrada ainda.</p>
-                    <p>Adicione sua primeira movimentação usando o formulário acima.</p>
+                    <p>Nenhuma movimentação registrada</p>
+                    <p>Adicione sua primeira movimentação</p>
                 </div>
             </div>
         </div>
         
         <footer>
-            <p>Sistema de controle financeiro entre Caio e Itallo | Hospedado no GitHub Pages</p>
-            <p>Dados armazenados localmente no seu navegador | <strong>Senha compartilhada: financa123</strong></p>
-            <p>Para acessar de outro dispositivo, exporte e importe os dados</p>
+            <div class="footer-content">
+                <p><i class="fas fa-globe"></i> Sistema online Caio & Itallo</p>
+                <p><i class="fas fa-database"></i> Dados: LocalStorage do navegador</p>
+                <p><i class="fas fa-mobile-alt"></i> Compatível com mobile e desktop</p>
+                <div class="footer-actions">
+                    <button id="btn-limpar-tudo" class="btn-limpar-tudo">
+                        <i class="fas fa-trash"></i> Limpar Todos os Dados
+                    </button>
+                </div>
+            </div>
         </footer>
     </div>
 
     <!-- Toast Notificação -->
     <div id="toast" class="toast"></div>
+
+    <!-- Modal Sincronização -->
+    <div id="sync-modal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-sync-alt"></i> Sincronizar Dados</h3>
+            <p>Para sincronizar com o Itallo:</p>
+            <ol>
+                <li>Exporte seus dados (botão Exportar)</li>
+                <li>Envie o arquivo .json para o Itallo</li>
+                <li>Ele deve importar no sistema dele</li>
+                <li>Repita o processo na direção contrária quando necessário</li>
+            </ol>
+            <div class="modal-actions">
+                <button id="btn-fechar-modal" class="btn-fechar">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmação -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-exclamation-triangle"></i> Confirmar Ação</h3>
+            <p id="confirm-message">Tem certeza que deseja realizar esta ação?</p>
+            <div class="modal-actions">
+                <button id="btn-cancelar" class="btn-cancelar">Cancelar</button>
+                <button id="btn-confirmar" class="btn-confirmar">Confirmar</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
