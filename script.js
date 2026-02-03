@@ -1,17 +1,16 @@
-// Sistema de Controle Financeiro - Caio & Itallo
-// Dados salvos em LocalStorage (apenas no navegador atual)
+// Sistema de Controle de Empréstimos - Caio & Itallo
+// Dados salvos em LocalStorage
 
-let movimentacoes = [];
-let filtroAtivo = false;
-let acaoConfirmacao = null;
-let parametrosConfirmacao = null;
+// SENHA FIXA PARA EXCLUIR REGISTROS
+const SENHA_EXCLUIR = "amigos123";
+
+let emprestimos = [];
+let idParaExcluir = null;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
-    // Definir data e hora atual como padrão
-    const agora = new Date();
-    document.getElementById('data').valueAsDate = agora;
-    document.getElementById('hora').value = agora.toTimeString().substring(0, 5);
+    // Definir data atual como padrão
+    document.getElementById('data').valueAsDate = new Date();
     
     // Carregar dados do LocalStorage
     carregarDados();
@@ -20,46 +19,40 @@ document.addEventListener('DOMContentLoaded', function() {
     atualizarInterface();
     
     // Configurar eventos
-    document.getElementById('form-movimentacao').addEventListener('submit', registrarMovimentacao);
+    document.getElementById('form-emprestimo').addEventListener('submit', registrarEmprestimo);
     document.getElementById('btn-limpar').addEventListener('click', limparFormulario);
     document.getElementById('btn-exportar').addEventListener('click', exportarDados);
     document.getElementById('btn-importar').addEventListener('click', () => {
         document.getElementById('import-file').click();
     });
     document.getElementById('import-file').addEventListener('change', importarDados);
-    document.getElementById('tipo').addEventListener('change', atualizarLabelsFormulario);
-    document.getElementById('btn-sincronizar').addEventListener('click', mostrarModalSincronizacao);
-    document.getElementById('btn-fechar-modal').addEventListener('click', fecharModal);
-    document.getElementById('btn-limpar-tudo').addEventListener('click', () => {
-        mostrarConfirmacao('limparTodosDados', null, 'Tem certeza que deseja excluir TODOS os dados? Esta ação não pode ser desfeita.');
-    });
-    document.getElementById('btn-filtrar').addEventListener('click', alternarFiltro);
-    document.getElementById('btn-cancelar').addEventListener('click', cancelarConfirmacao);
-    document.getElementById('btn-confirmar').addEventListener('click', executarConfirmacao);
+    document.getElementById('btn-limpar-tudo').addEventListener('click', mostrarModalLimparTudo);
+    document.getElementById('btn-cancelar').addEventListener('click', fecharModal);
+    document.getElementById('btn-confirmar-senha').addEventListener('click', verificarSenha);
     
-    // Fechar modais ao clicar fora
-    document.getElementById('sync-modal').addEventListener('click', function(e) {
+    // Fechar modal ao clicar fora
+    document.getElementById('senha-modal').addEventListener('click', function(e) {
         if (e.target === this) fecharModal();
     });
     
-    document.getElementById('confirm-modal').addEventListener('click', function(e) {
-        if (e.target === this) cancelarConfirmacao();
+    // Enter no campo de senha
+    document.getElementById('senha-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            verificarSenha();
+        }
     });
     
-    // Atualizar labels inicialmente
-    atualizarLabelsFormulario();
-    
     // Mostrar informações iniciais
-    mostrarToast('Sistema carregado! Dados salvos localmente.', 'info');
+    mostrarToast('Sistema carregado!', 'info');
 });
 
 // Carregar dados do LocalStorage
 function carregarDados() {
     try {
-        const dadosSalvos = localStorage.getItem('movimentacoesCaioItallo');
+        const dadosSalvos = localStorage.getItem('emprestimosCaioItallo');
         if (dadosSalvos) {
-            movimentacoes = JSON.parse(dadosSalvos);
-            console.log(`Carregadas ${movimentacoes.length} movimentações`);
+            emprestimos = JSON.parse(dadosSalvos);
+            console.log(`Carregados ${emprestimos.length} empréstimos`);
         }
     } catch (e) {
         console.error('Erro ao carregar dados:', e);
@@ -70,293 +63,231 @@ function carregarDados() {
 // Salvar dados no LocalStorage
 function salvarDados() {
     try {
-        localStorage.setItem('movimentacoesCaioItallo', JSON.stringify(movimentacoes));
-        localStorage.setItem('ultimaAtualizacao', new Date().toISOString());
+        localStorage.setItem('emprestimosCaioItallo', JSON.stringify(emprestimos));
         return true;
     } catch (e) {
         console.error('Erro ao salvar dados:', e);
-        mostrarToast('Erro ao salvar dados. Espaço pode estar cheio.', 'error');
+        mostrarToast('Erro ao salvar dados', 'error');
         return false;
     }
 }
 
-// Atualizar toda a interface
+// Atualizar interface completa
 function atualizarInterface() {
-    atualizarSaldos();
+    calcularResumo();
     atualizarHistorico();
-    atualizarEstatisticas();
 }
 
-// Atualizar saldos
-function atualizarSaldos() {
-    let saldoCaio = 0;
-    let saldoItallo = 0;
+// Calcular resumo
+function calcularResumo() {
+    let caioDeve = 0;
+    let italloDeve = 0;
+    let valorTotal = 0;
     
-    movimentacoes.forEach(mov => {
-        if (mov.tipo === 'emprestimo') {
-            if (mov.direcao === 'caio-para-itallo') {
-                saldoCaio += mov.valor;
-                saldoItallo -= mov.valor;
-            } else {
-                saldoItallo += mov.valor;
-                saldoCaio -= mov.valor;
-            }
-        } else if (mov.tipo === 'pagamento') {
-            if (mov.direcao === 'caio-para-itallo') {
-                saldoCaio -= mov.valor;
-                saldoItallo += mov.valor;
-            } else {
-                saldoItallo -= mov.valor;
-                saldoCaio += mov.valor;
-            }
+    emprestimos.forEach(emp => {
+        valorTotal += emp.valor;
+        
+        if (emp.deQuem === 'caio-para-itallo') {
+            // Caio emprestou para Itallo, então Itallo deve
+            italloDeve += emp.valor;
+        } else {
+            // Itallo emprestou para Caio, então Caio deve
+            caioDeve += emp.valor;
         }
     });
     
-    // Caio
-    const saldoCaioElement = document.getElementById('saldo-caio');
-    const descricaoCaioElement = document.getElementById('descricao-caio');
+    const saldoFinal = italloDeve - caioDeve;
     
-    saldoCaioElement.textContent = formatarMoeda(saldoCaio);
-    saldoCaioElement.className = 'saldo-valor ' + (saldoCaio >= 0 ? 'saldo-positivo' : 'saldo-negativo');
+    // Atualizar resumo
+    document.getElementById('caio-deve').textContent = formatarMoeda(caioDeve);
+    document.getElementById('itallo-deve').textContent = formatarMoeda(italloDeve);
+    document.getElementById('saldo-final').textContent = formatarMoeda(Math.abs(saldoFinal));
     
-    if (saldoCaio > 0) {
-        descricaoCaioElement.textContent = `Itallo deve ${formatarMoeda(saldoCaio)}`;
-        descricaoCaioElement.style.color = '#27ae60';
-    } else if (saldoCaio < 0) {
-        descricaoCaioElement.textContent = `Caio deve ${formatarMoeda(Math.abs(saldoCaio))}`;
-        descricaoCaioElement.style.color = '#e74c3c';
+    // Cor do saldo final
+    const saldoElement = document.getElementById('saldo-final');
+    if (saldoFinal > 0) {
+        saldoElement.className = 'resumo-valor positivo';
+    } else if (saldoFinal < 0) {
+        saldoElement.className = 'resumo-valor negativo';
     } else {
-        descricaoCaioElement.textContent = 'Contas em dia';
-        descricaoCaioElement.style.color = '#7f8c8d';
+        saldoElement.className = 'resumo-valor';
     }
     
-    // Itallo
-    const saldoItalloElement = document.getElementById('saldo-itallo');
-    const descricaoItalloElement = document.getElementById('descricao-itallo');
-    
-    saldoItalloElement.textContent = formatarMoeda(saldoItallo);
-    saldoItalloElement.className = 'saldo-valor ' + (saldoItallo >= 0 ? 'saldo-positivo' : 'saldo-negativo');
-    
-    if (saldoItallo > 0) {
-        descricaoItalloElement.textContent = `Caio deve ${formatarMoeda(saldoItallo)}`;
-        descricaoItalloElement.style.color = '#27ae60';
-    } else if (saldoItallo < 0) {
-        descricaoItalloElement.textContent = `Itallo deve ${formatarMoeda(Math.abs(saldoItallo))}`;
-        descricaoItalloElement.style.color = '#e74c3c';
-    } else {
-        descricaoItalloElement.textContent = 'Contas em dia';
-        descricaoItalloElement.style.color = '#7f8c8d';
-    }
+    // Atualizar estatísticas
+    document.getElementById('total-emprestimos').textContent = `${emprestimos.length} empréstimo${emprestimos.length !== 1 ? 's' : ''}`;
+    document.getElementById('valor-total').textContent = `Total: ${formatarMoeda(valorTotal)}`;
 }
 
 // Atualizar histórico
 function atualizarHistorico() {
-    const corpoHistorico = document.getElementById('historico-corpo');
+    const listaElement = document.getElementById('lista-emprestimos');
     const semDadosElement = document.getElementById('sem-dados');
     
-    corpoHistorico.innerHTML = '';
+    listaElement.innerHTML = '';
     
-    // Filtrar se necessário
-    let movimentacoesParaExibir = [...movimentacoes];
-    
-    if (filtroAtivo) {
-        // Filtrar apenas últimos 30 dias
-        const trintaDiasAtras = new Date();
-        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-        
-        movimentacoesParaExibir = movimentacoesParaExibir.filter(mov => {
-            const dataMov = new Date(mov.data + 'T' + (mov.hora || '00:00'));
-            return dataMov >= trintaDiasAtras;
-        });
-    }
-    
-    if (movimentacoesParaExibir.length === 0) {
+    if (emprestimos.length === 0) {
         semDadosElement.style.display = 'block';
-        semDadosElement.innerHTML = `
-            <i class="fas fa-clipboard-list fa-2x"></i>
-            <p>${filtroAtivo ? 'Nenhuma movimentação nos últimos 30 dias' : 'Nenhuma movimentação registrada'}</p>
-            <p>${filtroAtivo ? 'Tente remover o filtro' : 'Adicione sua primeira movimentação'}</p>
-        `;
         return;
     }
     
     semDadosElement.style.display = 'none';
     
     // Ordenar por data (mais recente primeiro)
-    const movimentacoesOrdenadas = movimentacoesParaExibir.sort((a, b) => {
-        const dataA = new Date(a.data + 'T' + (a.hora || '00:00'));
-        const dataB = new Date(b.data + 'T' + (b.hora || '00:00'));
-        return dataB - dataA;
+    const emprestimosOrdenados = [...emprestimos].sort((a, b) => {
+        return new Date(b.data) - new Date(a.data);
     });
     
-    movimentacoesOrdenadas.forEach((mov, index) => {
-        const linha = document.createElement('tr');
+    emprestimosOrdenados.forEach((emp, index) => {
+        const div = document.createElement('div');
+        div.className = `emprestimo-item ${emp.deQuem === 'caio-para-itallo' ? 'caio' : 'itallo'}`;
         
         // Formatar data
-        const dataObj = new Date(mov.data);
+        const dataObj = new Date(emp.data);
         const dataFormatada = dataObj.toLocaleDateString('pt-BR');
-        const horaFormatada = mov.hora || '';
         
-        // Determinar ícone e texto
-        let direcaoTexto = '';
-        let direcaoIcone = '';
-        let classeValor = '';
-        let tipoTexto = mov.tipo === 'emprestimo' ? 'Empréstimo' : 'Pagamento';
+        // Determinar texto
+        const quemEmprestou = emp.deQuem === 'caio-para-itallo' ? 'Caio' : 'Itallo';
+        const paraQuem = emp.deQuem === 'caio-para-itallo' ? 'Itallo' : 'Caio';
         
-        if (mov.direcao === 'caio-para-itallo') {
-            direcaoTexto = 'Caio → Itallo';
-            direcaoIcone = '<i class="fas fa-arrow-right"></i>';
-        } else {
-            direcaoTexto = 'Itallo → Caio';
-            direcaoIcone = '<i class="fas fa-arrow-left"></i>';
-        }
-        
-        classeValor = mov.tipo === 'emprestimo' ? 'valor-emprestimo' : 'valor-pagamento';
-        
-        linha.innerHTML = `
-            <td>${dataFormatada}${horaFormatada ? '<br><small>' + horaFormatada + '</small>' : ''}</td>
-            <td>${mov.descricao || tipoTexto}</td>
-            <td>
-                <div class="direcao-setas">
-                    ${direcaoIcone}
-                    <span>${direcaoTexto}</span>
+        div.innerHTML = `
+            <div class="emprestimo-header">
+                <div class="emprestimo-pessoa ${quemEmprestou.toLowerCase()}">
+                    <i class="fas fa-user-circle"></i> ${quemEmprestou} → ${paraQuem}
                 </div>
-            </td>
-            <td class="${classeValor}">${formatarMoeda(mov.valor)}</td>
-            <td class="mobile-hidden">
-                <button class="btn-excluir" onclick="excluirMovimentacao(${index})">
+                <div class="emprestimo-data">
+                    <i class="far fa-calendar"></i> ${dataFormatada}
+                </div>
+            </div>
+            <div class="emprestimo-valor">${formatarMoeda(emp.valor)}</div>
+            ${emp.descricao ? `<div class="emprestimo-descricao"><i class="far fa-comment"></i> ${emp.descricao}</div>` : ''}
+            <div class="emprestimo-acoes">
+                <button class="btn-excluir" onclick="solicitarExclusao(${index})">
                     <i class="fas fa-trash"></i> Excluir
                 </button>
-            </td>
+            </div>
         `;
         
-        corpoHistorico.appendChild(linha);
+        listaElement.appendChild(div);
     });
 }
 
-// Atualizar estatísticas
-function atualizarEstatisticas() {
-    const totalElement = document.getElementById('total-movimentacoes');
-    totalElement.textContent = `${movimentacoes.length} movimentação${movimentacoes.length !== 1 ? 'es' : ''}`;
-    
-    // Atualizar botão de filtro
-    const btnFiltrar = document.getElementById('btn-filtrar');
-    if (filtroAtivo) {
-        btnFiltrar.innerHTML = '<i class="fas fa-filter"></i> Remover Filtro';
-        btnFiltrar.style.backgroundColor = '#3498db';
-    } else {
-        btnFiltrar.innerHTML = '<i class="fas fa-filter"></i> Filtrar';
-        btnFiltrar.style.backgroundColor = '#95a5a6';
-    }
-}
-
-// Registrar nova movimentação
-function registrarMovimentacao(event) {
+// Registrar novo empréstimo
+function registrarEmprestimo(event) {
     event.preventDefault();
     
     // Obter valores
-    const tipo = document.getElementById('tipo').value;
-    const direcaoElement = document.querySelector('input[name="direcao"]:checked');
-    
-    if (!direcaoElement) {
-        mostrarToast('Selecione quem para quem', 'error');
-        return;
-    }
-    
+    const deQuem = document.querySelector('input[name="de-quem"]:checked').value;
     const valor = parseFloat(document.getElementById('valor').value);
     const descricao = document.getElementById('descricao').value;
     const data = document.getElementById('data').value;
-    const hora = document.getElementById('hora').value;
     
     // Validações
-    if (!tipo || !valor || !data || !hora) {
-        mostrarToast('Preencha todos os campos', 'error');
+    if (!deQuem || !valor || !data) {
+        mostrarToast('Preencha todos os campos obrigatórios', 'error');
         return;
     }
     
     if (valor <= 0) {
-        mostrarToast('Valor deve ser maior que zero', 'error');
+        mostrarToast('O valor deve ser maior que zero', 'error');
         return;
     }
     
-    // Criar movimentação
-    const movimentacao = {
-        tipo,
-        direcao: direcaoElement.value,
+    // Criar empréstimo
+    const emprestimo = {
+        deQuem,
         valor,
         descricao,
         data,
-        hora,
         dataRegistro: new Date().toISOString()
     };
     
     // Adicionar
-    movimentacoes.push(movimentacao);
+    emprestimos.push(emprestimo);
     
     // Salvar
     if (salvarDados()) {
         atualizarInterface();
         limparFormulario();
-        mostrarToast('Movimentação registrada!', 'success');
+        mostrarToast('Empréstimo registrado com sucesso!', 'success');
     }
 }
 
-// Excluir movimentação
-function excluirMovimentacao(index) {
-    mostrarConfirmacao('excluirMovimentacao', index, 'Tem certeza que deseja excluir esta movimentação?');
-}
-
-// Função para excluir movimentação (chamada após confirmação)
-function excluirMovimentacaoConfirmada(index) {
-    movimentacoes.splice(index, 1);
+// Solicitar exclusão (abre modal de senha)
+function solicitarExclusao(id) {
+    idParaExcluir = id;
     
-    if (salvarDados()) {
-        atualizarInterface();
-        mostrarToast('Movimentação excluída!', 'success');
+    // Resetar modal
+    document.getElementById('senha-input').value = '';
+    document.getElementById('senha-erro').textContent = '';
+    document.getElementById('senha-erro').classList.remove('show');
+    
+    // Mostrar modal
+    document.getElementById('senha-modal').style.display = 'flex';
+    document.getElementById('senha-input').focus();
+}
+
+// Verificar senha
+function verificarSenha() {
+    const senhaDigitada = document.getElementById('senha-input').value;
+    const erroElement = document.getElementById('senha-erro');
+    
+    if (senhaDigitada === SENHA_EXCLUIR) {
+        // Senha correta - excluir
+        excluirEmprestimo(idParaExcluir);
+        fecharModal();
+    } else {
+        // Senha incorreta
+        erroElement.textContent = 'Senha incorreta!';
+        erroElement.classList.add('show');
+        document.getElementById('senha-input').value = '';
+        document.getElementById('senha-input').focus();
+        
+        // Vibrar o campo
+        const input = document.getElementById('senha-input');
+        input.style.borderColor = 'var(--danger-color)';
+        input.style.animation = 'shake 0.5s';
+        
+        setTimeout(() => {
+            input.style.borderColor = '';
+            input.style.animation = '';
+        }, 500);
     }
+}
+
+// Excluir empréstimo (após verificação de senha)
+function excluirEmprestimo(id) {
+    if (id !== null && id >= 0 && id < emprestimos.length) {
+        emprestimos.splice(id, 1);
+        
+        if (salvarDados()) {
+            atualizarInterface();
+            mostrarToast('Empréstimo excluído com sucesso!', 'success');
+        }
+    }
+    
+    idParaExcluir = null;
 }
 
 // Limpar formulário
 function limparFormulario() {
-    document.getElementById('form-movimentacao').reset();
-    const agora = new Date();
-    document.getElementById('data').valueAsDate = agora;
-    document.getElementById('hora').value = agora.toTimeString().substring(0, 5);
-    atualizarLabelsFormulario();
+    document.getElementById('form-emprestimo').reset();
+    document.getElementById('data').valueAsDate = new Date();
 }
 
-// Atualizar labels do formulário
-function atualizarLabelsFormulario() {
-    const tipo = document.getElementById('tipo').value;
-    const direcaoLabels = document.querySelectorAll('.radio-option label');
-    
-    if (tipo === 'emprestimo') {
-        direcaoLabels[0].querySelector('.desktop-label').textContent = 'Caio emprestou para Itallo';
-        direcaoLabels[1].querySelector('.desktop-label').textContent = 'Itallo emprestou para Caio';
-    } else if (tipo === 'pagamento') {
-        direcaoLabels[0].querySelector('.desktop-label').textContent = 'Caio pagou Itallo';
-        direcaoLabels[1].querySelector('.desktop-label').textContent = 'Itallo pagou Caio';
-    } else {
-        direcaoLabels[0].querySelector('.desktop-label').textContent = 'Caio para Itallo';
-        direcaoLabels[1].querySelector('.desktop-label').textContent = 'Itallo para Caio';
-    }
-}
-
-// Exportar dados para JSON
+// Exportar dados
 function exportarDados() {
-    if (movimentacoes.length === 0) {
+    if (emprestimos.length === 0) {
         mostrarToast('Não há dados para exportar', 'warning');
         return;
     }
     
     const dados = {
-        sistema: 'Controle Financeiro Caio & Itallo',
+        sistema: 'Controle de Empréstimos Caio & Itallo',
         versao: '1.0',
+        senhaExclusao: SENHA_EXCLUIR,
         dataExportacao: new Date().toISOString(),
-        totalMovimentacoes: movimentacoes.length,
-        saldoCaio: calcularSaldo('caio'),
-        saldoItallo: calcularSaldo('itallo'),
-        movimentacoes: movimentacoes
+        totalEmprestimos: emprestimos.length,
+        emprestimos: emprestimos
     };
     
     const dadosStr = JSON.stringify(dados, null, 2);
@@ -364,7 +295,7 @@ function exportarDados() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `controle-financeiro-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `emprestimos-caio-itallo-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -373,7 +304,7 @@ function exportarDados() {
     mostrarToast('Dados exportados com sucesso!', 'success');
 }
 
-// Importar dados de JSON
+// Importar dados
 function importarDados(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -383,12 +314,22 @@ function importarDados(event) {
         try {
             const dados = JSON.parse(e.target.result);
             
-            if (!dados.movimentacoes || !Array.isArray(dados.movimentacoes)) {
+            if (!dados.emprestimos || !Array.isArray(dados.emprestimos)) {
                 throw new Error('Formato de arquivo inválido');
             }
             
-            mostrarConfirmacao('importarDadosConfirmado', dados.movimentacoes, 
-                `Deseja importar ${dados.movimentacoes.length} movimentações? Os dados atuais serão substituídos.`);
+            // Verificar senha se existir no arquivo
+            if (dados.senhaExclusao && dados.senhaExclusao !== SENHA_EXCLUIR) {
+                mostrarToast('O arquivo foi exportado com uma senha diferente', 'warning');
+            }
+            
+            // Substituir dados
+            emprestimos = dados.emprestimos;
+            
+            if (salvarDados()) {
+                atualizarInterface();
+                mostrarToast(`${emprestimos.length} empréstimos importados com sucesso!`, 'success');
+            }
             
         } catch (error) {
             console.error('Erro ao importar dados:', error);
@@ -401,42 +342,25 @@ function importarDados(event) {
     reader.readAsText(file);
 }
 
-// Função para importar dados (chamada após confirmação)
-function importarDadosConfirmado(novasMovimentacoes) {
-    movimentacoes = novasMovimentacoes;
-    
-    if (salvarDados()) {
-        atualizarInterface();
-        mostrarToast(`${movimentacoes.length} movimentações importadas com sucesso!`, 'success');
+// Mostrar modal para limpar tudo
+function mostrarModalLimparTudo() {
+    if (emprestimos.length === 0) {
+        mostrarToast('Não há dados para limpar', 'warning');
+        return;
     }
+    
+    // Abrir modal de senha para limpar tudo
+    idParaExcluir = -1; // Usar -1 para indicar limpar tudo
+    document.getElementById('senha-input').value = '';
+    document.getElementById('senha-erro').textContent = '';
+    document.getElementById('senha-erro').classList.remove('show');
+    document.getElementById('senha-modal').style.display = 'flex';
+    document.getElementById('senha-input').focus();
 }
 
-// Calcular saldo
-function calcularSaldo(pessoa) {
-    let saldo = 0;
-    
-    movimentacoes.forEach(mov => {
-        if (mov.tipo === 'emprestimo') {
-            if (mov.direcao === 'caio-para-itallo') {
-                saldo += (pessoa === 'caio' ? mov.valor : -mov.valor);
-            } else {
-                saldo += (pessoa === 'itallo' ? mov.valor : -mov.valor);
-            }
-        } else if (mov.tipo === 'pagamento') {
-            if (mov.direcao === 'caio-para-itallo') {
-                saldo += (pessoa === 'caio' ? -mov.valor : mov.valor);
-            } else {
-                saldo += (pessoa === 'itallo' ? -mov.valor : mov.valor);
-            }
-        }
-    });
-    
-    return saldo;
-}
-
-// Limpar todos os dados
+// Função para limpar todos os dados
 function limparTodosDados() {
-    movimentacoes = [];
+    emprestimos = [];
     
     if (salvarDados()) {
         atualizarInterface();
@@ -444,70 +368,18 @@ function limparTodosDados() {
     }
 }
 
-// Mostrar modal de sincronização
-function mostrarModalSincronizacao() {
-    document.getElementById('sync-modal').style.display = 'flex';
-}
-
 // Fechar modal
 function fecharModal() {
-    document.getElementById('sync-modal').style.display = 'none';
+    document.getElementById('senha-modal').style.display = 'none';
+    idParaExcluir = null;
 }
 
-// Alternar filtro
-function alternarFiltro() {
-    filtroAtivo = !filtroAtivo;
-    atualizarHistorico();
-    atualizarEstatisticas();
-    
-    if (filtroAtivo) {
-        mostrarToast('Filtro ativado: mostrando últimos 30 dias', 'info');
-    } else {
-        mostrarToast('Filtro removido: mostrando todos os registros', 'info');
-    }
-}
-
-// Mostrar confirmação
-function mostrarConfirmacao(acao, parametros, mensagem) {
-    acaoConfirmacao = acao;
-    parametrosConfirmacao = parametros;
-    
-    document.getElementById('confirm-message').textContent = mensagem;
-    document.getElementById('confirm-modal').style.display = 'flex';
-}
-
-// Cancelar confirmação
-function cancelarConfirmacao() {
-    acaoConfirmacao = null;
-    parametrosConfirmacao = null;
-    document.getElementById('confirm-modal').style.display = 'none';
-}
-
-// Executar ação confirmada
-function executarConfirmacao() {
-    if (!acaoConfirmacao) return;
-    
-    switch (acaoConfirmacao) {
-        case 'excluirMovimentacao':
-            excluirMovimentacaoConfirmada(parametrosConfirmacao);
-            break;
-        case 'importarDadosConfirmado':
-            importarDadosConfirmado(parametrosConfirmacao);
-            break;
-        case 'limparTodosDados':
-            limparTodosDados();
-            break;
-    }
-    
-    cancelarConfirmacao();
-}
-
-// Formatar valor em moeda brasileira
+// Formatar moeda
 function formatarMoeda(valor) {
     return 'R$ ' + valor.toFixed(2).replace('.', ',');
 }
 
-// Mostrar notificação toast
+// Mostrar toast
 function mostrarToast(mensagem, tipo = 'info') {
     const toast = document.getElementById('toast');
     toast.textContent = mensagem;
@@ -528,18 +400,13 @@ function mostrarToast(mensagem, tipo = 'info') {
     }, 3000);
 }
 
-// Backup automático
-function fazerBackupAutomatico() {
-    if (movimentacoes.length > 0) {
-        try {
-            const hoje = new Date().toISOString().split('T')[0];
-            const backupKey = `backup_${hoje}`;
-            localStorage.setItem(backupKey, JSON.stringify(movimentacoes));
-        } catch (e) {
-            console.warn('Não foi possível fazer backup automático:', e);
-        }
+// Adicionar animação shake
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
     }
-}
-
-// Fazer backup a cada hora
-setInterval(fazerBackupAutomatico, 60 * 60 * 1000);
+`;
+document.head.appendChild(style);
