@@ -34,6 +34,57 @@ body {
     padding: 15px;
 }
 
+/* Status da Conexão */
+.connection-status {
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.connection-status.connected {
+    background-color: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.connection-status.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.connection-status.connecting {
+    background-color: #cce5ff;
+    color: #004085;
+    border-color: #b8daff;
+}
+
+.connection-status i {
+    font-size: 0.8rem;
+}
+
+.connection-status.connected i {
+    color: #28a745;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.connection-status.error i {
+    color: #dc3545;
+}
+
 /* Header */
 header {
     text-align: center;
@@ -281,6 +332,15 @@ button:hover {
     gap: 15px;
     font-size: 0.9rem;
     color: var(--gray-color);
+    align-items: center;
+}
+
+.last-update {
+    font-size: 0.85rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 #lista-transferencias {
@@ -376,54 +436,6 @@ button:hover {
     color: #bdc3c7;
 }
 
-/* Ações */
-.acoes-container {
-    background: white;
-    border-radius: var(--border-radius);
-    padding: 20px;
-    box-shadow: var(--box-shadow);
-    margin-bottom: 25px;
-}
-
-.acoes-container h3 {
-    color: var(--dark-color);
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.3rem;
-}
-
-.botoes-acoes {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-}
-
-.btn-exportar {
-    background-color: var(--success-color);
-}
-
-.btn-exportar:hover {
-    background-color: #219653;
-}
-
-.btn-importar {
-    background-color: var(--warning-color);
-}
-
-.btn-importar:hover {
-    background-color: #d68910;
-}
-
-.btn-limpar-tudo {
-    background-color: var(--danger-color);
-}
-
-.btn-limpar-tudo:hover {
-    background-color: #c0392b;
-}
-
 /* Footer */
 footer {
     text-align: center;
@@ -494,8 +506,6 @@ footer {
     border-radius: var(--border-radius);
     max-width: 400px;
     width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
 }
 
 .modal-content h3 {
@@ -539,26 +549,6 @@ footer {
 }
 
 /* Responsividade */
-@media (min-width: 768px) {
-    .botoes-acoes {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    
-    h1 {
-        font-size: 2.2rem;
-    }
-    
-    .resumo-content {
-        flex-direction: row;
-        justify-content: space-between;
-    }
-    
-    .resumo-item {
-        flex: 1;
-        margin: 0 5px;
-    }
-}
-
 @media (max-width: 767px) {
     .historico-header {
         flex-direction: column;
@@ -568,6 +558,7 @@ footer {
     .historico-stats {
         width: 100%;
         justify-content: space-between;
+        flex-wrap: wrap;
     }
     
     .modal-buttons {
@@ -583,4 +574,34 @@ footer {
     .resumo-pessoa {
         flex-direction: column;
     }
+}
+
+@media (min-width: 768px) {
+    h1 {
+        font-size: 2.2rem;
+    }
+    
+    .resumo-content {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    
+    .resumo-item {
+        flex: 1;
+        margin: 0 5px;
+    }
+}
+
+/* Estilo para o sinal nos valores */
+.valor-sinal {
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.transferencia-item.caio .valor-sinal {
+    color: var(--caio-color);
+}
+
+.transferencia-item.itallo .valor-sinal {
+    color: var(--itallo-color);
 }

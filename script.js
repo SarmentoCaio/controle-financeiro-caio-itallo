@@ -1,31 +1,44 @@
-// Sistema de Controle de Transferências - Caio & Itallo
-// Dados salvos em LocalStorage
-// Regra: Transferência de A para B = A ganha, B perde
+// CONFIGURAÇÃO DO SUPABASE - SUAS CONFIGURAÇÕES
+const SUPABASE_URL = 'https://dhbavpdhdsixjnlfzpca.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRoYmF2cGRoZHNpeGpubGZ6cGNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNjQxNjksImV4cCI6MjA4NTY0MDE2OX0.5HwmEVr9UwvSZCoLPvfnGT3GxrDLepjQFK0jRoGYej0';
+const TABLE_NAME = 'transferencias';
 
+// Estado da aplicação
 let transferencias = [];
+let transferenciaParaExcluir = null;
 
-// Inicialização
+// Inicialização - AQUI criamos o cliente Supabase
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado. Iniciando aplicação...');
+    
+    // Criar cliente Supabase DENTRO do evento DOMContentLoaded
+    let supabase;
+    try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Cliente Supabase criado com sucesso');
+    } catch (error) {
+        console.error('Erro ao criar cliente Supabase:', error);
+        atualizarStatusConexao('Erro na configuração do banco', 'error');
+        return;
+    }
+    
     // Definir data atual como padrão
-    document.getElementById('data').valueAsDate = new Date();
-    
-    // Carregar dados do LocalStorage
-    carregarDados();
-    
-    // Atualizar interface
-    atualizarInterface();
+    const dataInput = document.getElementById('data');
+    if (dataInput) {
+        const hoje = new Date();
+        const dataFormatada = hoje.toISOString().split('T')[0];
+        dataInput.value = dataFormatada;
+    }
     
     // Configurar eventos
-    document.getElementById('form-transferencia').addEventListener('submit', registrarTransferencia);
-    document.getElementById('btn-limpar').addEventListener('click', limparFormulario);
-    document.getElementById('btn-exportar').addEventListener('click', exportarDados);
-    document.getElementById('btn-importar').addEventListener('click', () => {
-        document.getElementById('import-file').click();
+    document.getElementById('form-transferencia').addEventListener('submit', function(event) {
+        registrarTransferencia(event, supabase);
     });
-    document.getElementById('import-file').addEventListener('change', importarDados);
-    document.getElementById('btn-limpar-tudo').addEventListener('click', mostrarConfirmacaoLimparTudo);
+    document.getElementById('btn-limpar').addEventListener('click', limparFormulario);
     document.getElementById('btn-cancelar').addEventListener('click', fecharModal);
-    document.getElementById('btn-confirmar').addEventListener('click', confirmarAcao);
+    document.getElementById('btn-confirmar').addEventListener('click', function() {
+        confirmarExclusao(supabase);
+    });
     
     // Fechar modal ao clicar fora
     document.getElementById('confirm-modal').addEventListener('click', function(e) {
@@ -38,32 +51,282 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     atualizarEstiloRadios();
-    mostrarToast('Sistema carregado!', 'info');
+    
+    // Conectar ao Supabase
+    inicializarSupabase(supabase);
 });
 
-// Carregar dados do LocalStorage
-function carregarDados() {
+// Inicializar conexão com Supabase
+async function inicializarSupabase(supabase) {
+    atualizarStatusConexao('Conectando ao banco de dados...', 'connecting');
+    
     try {
-        const dadosSalvos = localStorage.getItem('transferenciasCaioItallo');
-        if (dadosSalvos) {
-            transferencias = JSON.parse(dadosSalvos);
-            console.log(`Carregadas ${transferencias.length} transferências`);
+        console.log('Testando conexão com Supabase...');
+        
+        // Testar conexão com um timeout
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout na conexão')), 10000)
+        );
+        
+        const connectionPromise = supabase
+            .from(TABLE_NAME)
+            .select('id')
+            .limit(1)
+            .maybeSingle();
+        
+        const { data, error } = await Promise.race([connectionPromise, timeoutPromise]);
+        
+        if (error && error.code !== 'PGRST116') { // PGRST116 é "no rows returned", que é OK
+            console.error('Erro na conexão:', error);
+            throw error;
         }
-    } catch (e) {
-        console.error('Erro ao carregar dados:', e);
-        mostrarToast('Erro ao carregar dados locais', 'error');
+        
+        console.log('Conexão bem-sucedida! Carregando dados...');
+        
+        // Carregar dados
+        await carregarDados(supabase);
+        
+        // Escutar por mudanças em tempo real
+        configurarEscutaTempoReal(supabase);
+        
+        atualizarStatusConexao('Conectado ao banco de dados ✓', 'connected');
+        mostrarToast('Sistema conectado! Dados sincronizados.', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao conectar com Supabase:', error);
+        atualizarStatusConexao('Erro na conexão. Verifique as configurações.', 'error');
+        mostrarToast('Erro ao conectar com o banco de dados', 'error');
+        
+        // Tentar carregar dados locais se houver
+        const dadosLocais = localStorage.getItem('transferencias_backup');
+        if (dadosLocais) {
+            try {
+                transferencias = JSON.parse(dadosLocais);
+                atualizarInterface();
+                mostrarToast('Usando dados locais (modo offline)', 'warning');
+            } catch (e) {
+                console.error('Erro ao carregar dados locais:', e);
+            }
+        }
     }
 }
 
-// Salvar dados no LocalStorage
-function salvarDados() {
+// Carregar dados do Supabase
+async function carregarDados(supabase) {
     try {
-        localStorage.setItem('transferenciasCaioItallo', JSON.stringify(transferencias));
-        return true;
-    } catch (e) {
-        console.error('Erro ao salvar dados:', e);
-        mostrarToast('Erro ao salvar dados', 'error');
-        return false;
+        console.log('Carregando dados do Supabase...');
+        
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .order('data', { ascending: false });
+        
+        if (error) {
+            console.error('Erro ao carregar dados:', error);
+            throw error;
+        }
+        
+        transferencias = data || [];
+        console.log(`Dados carregados: ${transferencias.length} transferências`);
+        
+        // Salvar backup local
+        localStorage.setItem('transferencias_backup', JSON.stringify(transferencias));
+        
+        atualizarInterface();
+        atualizarUltimaAtualizacao();
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        mostrarToast('Erro ao carregar dados do banco', 'error');
+        throw error;
+    }
+}
+
+// Configurar escuta em tempo real
+function configurarEscutaTempoReal(supabase) {
+    console.log('Configurando escuta em tempo real...');
+    
+    const channel = supabase
+        .channel('transferencias-channel')
+        .on('postgres_changes', 
+            { 
+                event: '*', 
+                schema: 'public', 
+                table: TABLE_NAME 
+            }, 
+            async (payload) => {
+                console.log('Mudança detectada no banco:', payload.eventType);
+                
+                // Recarregar dados quando houver mudanças
+                await carregarDados(supabase);
+                
+                // Mostrar notificação
+                if (payload.eventType === 'INSERT') {
+                    mostrarToast('Nova transferência registrada!', 'info');
+                } else if (payload.eventType === 'DELETE') {
+                    mostrarToast('Transferência excluída!', 'warning');
+                } else if (payload.eventType === 'UPDATE') {
+                    mostrarToast('Transferência atualizada!', 'info');
+                }
+                
+                atualizarUltimaAtualizacao();
+            }
+        )
+        .subscribe((status) => {
+            console.log('Status da escuta em tempo real:', status);
+        });
+}
+
+// Registrar nova transferência
+async function registrarTransferencia(event, supabase) {
+    event.preventDefault();
+    
+    // Obter valores
+    const direcao = document.querySelector('input[name="transferencia"]:checked').value;
+    const valorInput = document.getElementById('valor');
+    const valor = parseFloat(valorInput.value);
+    const descricao = document.getElementById('descricao').value;
+    const data = document.getElementById('data').value;
+    
+    // Validações
+    if (!direcao || !valor || !data) {
+        mostrarToast('Preencha todos os campos obrigatórios', 'error');
+        return;
+    }
+    
+    if (valor <= 0) {
+        mostrarToast('O valor deve ser maior que zero', 'error');
+        return;
+    }
+    
+    if (isNaN(valor)) {
+        mostrarToast('Valor inválido', 'error');
+        return;
+    }
+    
+    // Preparar dados
+    const transferencia = {
+        direcao,
+        valor,
+        descricao: descricao || null,
+        data
+    };
+    
+    console.log('Registrando transferência:', transferencia);
+    
+    // Obter referência ao botão ANTES do try-catch
+    const btnRegistrar = document.getElementById('btn-registrar');
+    const originalText = btnRegistrar ? btnRegistrar.innerHTML : '<i class="fas fa-save"></i> Registrar Transferência';
+    
+    try {
+        // Desabilitar botão durante o salvamento
+        if (btnRegistrar) {
+            btnRegistrar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            btnRegistrar.disabled = true;
+        }
+        
+        // Enviar para o Supabase
+        const { data: novaTransferencia, error } = await supabase
+            .from(TABLE_NAME)
+            .insert([transferencia])
+            .select();
+        
+        if (error) {
+            console.error('Erro do Supabase:', error);
+            throw error;
+        }
+        
+        console.log('Transferência salva com sucesso:', novaTransferencia);
+        mostrarToast('Transferência registrada com sucesso!', 'success');
+        
+        // Limpar apenas o valor e descrição, manter data e direção
+        valorInput.value = '';
+        document.getElementById('descricao').value = '';
+        
+    } catch (error) {
+        console.error('Erro ao salvar transferência:', error);
+        
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+            mostrarToast('Erro de rede. Verifique sua conexão.', 'error');
+        } else if (error.message.includes('JWT')) {
+            mostrarToast('Erro de autenticação. Verifique a chave API.', 'error');
+        } else {
+            mostrarToast('Erro ao salvar no banco de dados: ' + error.message, 'error');
+        }
+        
+        // Salvar localmente em caso de erro
+        const idTemporario = Date.now();
+        transferencias.unshift({
+            id: idTemporario,
+            ...transferencia,
+            created_at: new Date().toISOString()
+        });
+        localStorage.setItem('transferencias_backup', JSON.stringify(transferencias));
+        atualizarInterface();
+        mostrarToast('Transferência salva localmente (modo offline)', 'warning');
+        
+    } finally {
+        // Reabilitar botão
+        if (btnRegistrar) {
+            btnRegistrar.innerHTML = originalText;
+            btnRegistrar.disabled = false;
+        }
+    }
+}
+
+// Confirmar exclusão
+async function confirmarExclusao(supabase) {
+    if (!transferenciaParaExcluir) return;
+    
+    console.log('Excluindo transferência ID:', transferenciaParaExcluir);
+    
+    try {
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .delete()
+            .eq('id', transferenciaParaExcluir);
+        
+        if (error) throw error;
+        
+        mostrarToast('Transferência excluída com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao excluir transferência:', error);
+        mostrarToast('Erro ao excluir do banco de dados', 'error');
+        
+        // Remover localmente em caso de erro
+        transferencias = transferencias.filter(t => t.id !== transferenciaParaExcluir);
+        localStorage.setItem('transferencias_backup', JSON.stringify(transferencias));
+        atualizarInterface();
+        mostrarToast('Transferência removida localmente', 'warning');
+    } finally {
+        fecharModal();
+        transferenciaParaExcluir = null;
+    }
+}
+
+// As outras funções permanecem iguais...
+// Atualizar status da conexão
+function atualizarStatusConexao(mensagem, status) {
+    const statusElement = document.getElementById('connection-status');
+    if (statusElement) {
+        statusElement.innerHTML = `<i class="fas fa-circle"></i> <span>${mensagem}</span>`;
+        statusElement.className = `connection-status ${status}`;
+    }
+}
+
+// Atualizar última atualização
+function atualizarUltimaAtualizacao() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    const updateElement = document.getElementById('last-update');
+    if (updateElement) {
+        updateElement.innerHTML = `<i class="fas fa-clock"></i> <span>Atualizado: ${timeString}</span>`;
     }
 }
 
@@ -77,17 +340,21 @@ function atualizarInterface() {
 function calcularSaldos() {
     let saldoCaio = 0;
     let saldoItallo = 0;
+    let valorTotal = 0;
     
     // Calcular saldos acumulados
     transferencias.forEach(transf => {
+        const valor = parseFloat(transf.valor);
+        valorTotal += valor;
+        
         if (transf.direcao === 'caio-para-itallo') {
             // Caio transferiu para Itallo = Caio ganha +, Itallo perde -
-            saldoCaio += transf.valor;
-            saldoItallo -= transf.valor;
+            saldoCaio += valor;
+            saldoItallo -= valor;
         } else {
             // Itallo transferiu para Caio = Itallo ganha +, Caio perde -
-            saldoItallo += transf.valor;
-            saldoCaio -= transf.valor;
+            saldoItallo += valor;
+            saldoCaio -= valor;
         }
     });
     
@@ -95,22 +362,35 @@ function calcularSaldos() {
     const saldoCaioElement = document.getElementById('saldo-caio');
     const saldoItalloElement = document.getElementById('saldo-itallo');
     
-    saldoCaioElement.textContent = formatarMoeda(saldoCaio);
-    saldoCaioElement.className = 'resumo-valor ' + (saldoCaio >= 0 ? 'positivo' : 'negativo');
+    if (saldoCaioElement) {
+        saldoCaioElement.textContent = formatarMoeda(saldoCaio);
+        saldoCaioElement.className = 'resumo-valor ' + (saldoCaio >= 0 ? 'positivo' : 'negativo');
+    }
     
-    saldoItalloElement.textContent = formatarMoeda(saldoItallo);
-    saldoItalloElement.className = 'resumo-valor ' + (saldoItallo >= 0 ? 'positivo' : 'negativo');
+    if (saldoItalloElement) {
+        saldoItalloElement.textContent = formatarMoeda(saldoItallo);
+        saldoItalloElement.className = 'resumo-valor ' + (saldoItallo >= 0 ? 'positivo' : 'negativo');
+    }
     
     // Atualizar estatísticas
-    const valorTotal = transferencias.reduce((total, transf) => total + transf.valor, 0);
-    document.getElementById('total-transferencias').textContent = `${transferencias.length} transferência${transferencias.length !== 1 ? 's' : ''}`;
-    document.getElementById('valor-total').textContent = `Total: ${formatarMoeda(valorTotal)}`;
+    const totalElement = document.getElementById('total-transferencias');
+    const valorTotalElement = document.getElementById('valor-total');
+    
+    if (totalElement) {
+        totalElement.textContent = `${transferencias.length} transferência${transferencias.length !== 1 ? 's' : ''}`;
+    }
+    
+    if (valorTotalElement) {
+        valorTotalElement.textContent = `Total: ${formatarMoeda(valorTotal)}`;
+    }
 }
 
 // Atualizar histórico
 function atualizarHistorico() {
     const listaElement = document.getElementById('lista-transferencias');
     const semDadosElement = document.getElementById('sem-dados');
+    
+    if (!listaElement || !semDadosElement) return;
     
     listaElement.innerHTML = '';
     
@@ -123,15 +403,17 @@ function atualizarHistorico() {
     
     // Ordenar por data (mais recente primeiro)
     const transferenciasOrdenadas = [...transferencias].sort((a, b) => {
-        return new Date(b.data) - new Date(a.data);
+        const dataA = new Date(a.data || a.created_at);
+        const dataB = new Date(b.data || b.created_at);
+        return dataB - dataA;
     });
     
-    transferenciasOrdenadas.forEach((transf, index) => {
+    transferenciasOrdenadas.forEach((transf) => {
         const div = document.createElement('div');
         div.className = `transferencia-item ${transf.direcao === 'caio-para-itallo' ? 'caio' : 'itallo'}`;
         
         // Formatar data
-        const dataObj = new Date(transf.data);
+        const dataObj = new Date(transf.data || transf.created_at);
         const dataFormatada = dataObj.toLocaleDateString('pt-BR');
         
         // Determinar texto
@@ -149,11 +431,11 @@ function atualizarHistorico() {
                 </div>
             </div>
             <div class="transferencia-valor">
-                <span class="valor-sinal">${sinal}</span> ${formatarMoeda(transf.valor)}
+                <span class="valor-sinal">${sinal}</span> ${formatarMoeda(parseFloat(transf.valor))}
             </div>
             ${transf.descricao ? `<div class="transferencia-descricao"><i class="far fa-comment"></i> ${transf.descricao}</div>` : ''}
             <div class="transferencia-acoes">
-                <button class="btn-excluir" onclick="solicitarExclusao(${index})">
+                <button class="btn-excluir" onclick="solicitarExclusao(${transf.id})">
                     <i class="fas fa-trash"></i> Excluir
                 </button>
             </div>
@@ -181,192 +463,28 @@ function atualizarEstiloRadios() {
     }
 }
 
-// Registrar nova transferência
-function registrarTransferencia(event) {
-    event.preventDefault();
-    
-    // Obter valores
-    const direcao = document.querySelector('input[name="transferencia"]:checked').value;
-    const valor = parseFloat(document.getElementById('valor').value);
-    const descricao = document.getElementById('descricao').value;
-    const data = document.getElementById('data').value;
-    
-    // Validações
-    if (!direcao || !valor || !data) {
-        mostrarToast('Preencha todos os campos obrigatórios', 'error');
-        return;
-    }
-    
-    if (valor <= 0) {
-        mostrarToast('O valor deve ser maior que zero', 'error');
-        return;
-    }
-    
-    // Criar transferência
-    const transferencia = {
-        direcao,
-        valor,
-        descricao,
-        data,
-        dataRegistro: new Date().toISOString()
-    };
-    
-    // Adicionar
-    transferencias.push(transferencia);
-    
-    // Salvar
-    if (salvarDados()) {
-        atualizarInterface();
-        limparFormulario();
-        mostrarToast('Transferência registrada com sucesso!', 'success');
-    }
-}
-
 // Solicitar exclusão
 function solicitarExclusao(id) {
-    window.transferenciaParaExcluir = id;
+    transferenciaParaExcluir = id;
     
     // Mostrar modal
     document.getElementById('confirm-modal').style.display = 'flex';
 }
 
-// Excluir transferência
-function excluirTransferencia(id) {
-    if (id !== null && id >= 0 && id < transferencias.length) {
-        transferencias.splice(id, 1);
-        
-        if (salvarDados()) {
-            atualizarInterface();
-            mostrarToast('Transferência excluída com sucesso!', 'success');
-        }
-    }
-    
-    window.transferenciaParaExcluir = null;
+// Fechar modal
+function fecharModal() {
+    document.getElementById('confirm-modal').style.display = 'none';
+    transferenciaParaExcluir = null;
 }
 
 // Limpar formulário
 function limparFormulario() {
-    document.getElementById('form-transferencia').reset();
-    document.getElementById('data').valueAsDate = new Date();
+    document.getElementById('valor').value = '';
+    document.getElementById('descricao').value = '';
+    const hoje = new Date();
+    const dataFormatada = hoje.toISOString().split('T')[0];
+    document.getElementById('data').value = dataFormatada;
     atualizarEstiloRadios();
-}
-
-// Exportar dados
-function exportarDados() {
-    if (transferencias.length === 0) {
-        mostrarToast('Não há dados para exportar', 'warning');
-        return;
-    }
-    
-    // Calcular saldos atuais
-    let saldoCaio = 0;
-    let saldoItallo = 0;
-    
-    transferencias.forEach(transf => {
-        if (transf.direcao === 'caio-para-itallo') {
-            saldoCaio += transf.valor;
-            saldoItallo -= transf.valor;
-        } else {
-            saldoItallo += transf.valor;
-            saldoCaio -= transf.valor;
-        }
-    });
-    
-    const dados = {
-        sistema: 'Controle de Transferências Caio & Itallo',
-        versao: '1.0',
-        dataExportacao: new Date().toISOString(),
-        totalTransferencias: transferencias.length,
-        saldoAtualCaio: saldoCaio,
-        saldoAtualItallo: saldoItallo,
-        transferencias: transferencias
-    };
-    
-    const dadosStr = JSON.stringify(dados, null, 2);
-    const blob = new Blob([dadosStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `transferencias-caio-itallo-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    mostrarToast('Dados exportados com sucesso!', 'success');
-}
-
-// Importar dados
-function importarDados(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const dados = JSON.parse(e.target.result);
-            
-            if (!dados.transferencias || !Array.isArray(dados.transferencias)) {
-                throw new Error('Formato de arquivo inválido');
-            }
-            
-            // Substituir dados
-            transferencias = dados.transferencias;
-            
-            if (salvarDados()) {
-                atualizarInterface();
-                mostrarToast(`${transferencias.length} transferências importadas com sucesso!`, 'success');
-            }
-            
-        } catch (error) {
-            console.error('Erro ao importar dados:', error);
-            mostrarToast('Erro ao importar arquivo. Verifique o formato.', 'error');
-        }
-        
-        // Limpar input file
-        event.target.value = '';
-    };
-    reader.readAsText(file);
-}
-
-// Mostrar confirmação para limpar tudo
-function mostrarConfirmacaoLimparTudo() {
-    if (transferencias.length === 0) {
-        mostrarToast('Não há dados para limpar', 'warning');
-        return;
-    }
-    
-    window.acaoConfirmacao = 'limparTudo';
-    document.getElementById('confirm-message').textContent = 'Tem certeza que deseja excluir TODAS as transferências? Esta ação não pode ser desfeita.';
-    document.getElementById('confirm-modal').style.display = 'flex';
-}
-
-// Limpar todos os dados
-function limparTodosDados() {
-    transferencias = [];
-    
-    if (salvarDados()) {
-        atualizarInterface();
-        mostrarToast('Todos os dados foram excluídos!', 'success');
-    }
-}
-
-// Fechar modal
-function fecharModal() {
-    document.getElementById('confirm-modal').style.display = 'none';
-    window.transferenciaParaExcluir = null;
-    window.acaoConfirmacao = null;
-}
-
-// Confirmar ação
-function confirmarAcao() {
-    if (window.transferenciaParaExcluir !== null) {
-        excluirTransferencia(window.transferenciaParaExcluir);
-    } else if (window.acaoConfirmacao === 'limparTudo') {
-        limparTodosDados();
-    }
-    
-    fecharModal();
 }
 
 // Formatar moeda
@@ -377,6 +495,8 @@ function formatarMoeda(valor) {
 // Mostrar toast
 function mostrarToast(mensagem, tipo = 'info') {
     const toast = document.getElementById('toast');
+    if (!toast) return;
+    
     toast.textContent = mensagem;
     toast.className = 'toast show';
     
@@ -395,18 +515,5 @@ function mostrarToast(mensagem, tipo = 'info') {
     }, 3000);
 }
 
-// Adicionar estilo para o sinal nos valores
-const style = document.createElement('style');
-style.textContent = `
-    .valor-sinal {
-        font-weight: bold;
-        margin-right: 5px;
-    }
-    .transferencia-item.caio .valor-sinal {
-        color: var(--caio-color);
-    }
-    .transferencia-item.itallo .valor-sinal {
-        color: var(--itallo-color);
-    }
-`;
-document.head.appendChild(style);
+// Exportar funções para uso global
+window.solicitarExclusao = solicitarExclusao;
