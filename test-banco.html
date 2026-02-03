@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Conexão - Supabase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .teste-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .config-section {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: #ffdd59;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 221, 89, 0.5);
+        }
+        
+        .btn-teste {
+            width: 100%;
+            padding: 18px;
+            background: #ffdd59;
+            color: #333;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-teste:hover {
+            background: #ffd32a;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .resultado {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .resultado.success {
+            background: rgba(46, 213, 115, 0.2);
+            border: 2px solid #2ed573;
+            display: block;
+        }
+        
+        .resultado.error {
+            background: rgba(255, 71, 87, 0.2);
+            border: 2px solid #ff4757;
+            display: block;
+        }
+        
+        .resultado h3 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .resultado pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: monospace;
+            margin-top: 15px;
+        }
+        
+        .passos {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+        
+        .passos ol {
+            margin-left: 20px;
+            margin-top: 15px;
+        }
+        
+        .passos li {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        
+        .passos code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status.offline {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+        }
+        
+        .status.online {
+            background: rgba(46, 213, 115, 0.2);
+            color: #2ed573;
+        }
+        
+        .creditos {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+    </style>
+    <!-- Incluir Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="teste-container">
+        <h1>
+            <i class="fas fa-database"></i>
+            Teste de Conexão Supabase
+        </h1>
+        
+        <div class="config-section">
+            <h2>Configuração do Banco de Dados</h2>
+            
+            <label for="supabase-url">URL do Supabase:</label>
+            <input type="text" id="supabase-url" 
+                   placeholder="https://seu-projeto.supabase.co"
+                   value="https://seu-projeto.supabase.co">
+            
+            <label for="supabase-key">Chave Pública (anon key):</label>
+            <input type="text" id="supabase-key" 
+                   placeholder="sua-chave-publica-aqui">
+            
+            <label for="table-name">Nome da Tabela:</label>
+            <input type="text" id="table-name" 
+                   placeholder="transferencias"
+                   value="transferencias">
+            
+            <button class="btn-teste" onclick="testarConexao()">
+                <i class="fas fa-plug"></i> Testar Conexão
+            </button>
+        </div>
+        
+        <div id="resultado" class="resultado">
+            <!-- Resultado será inserido aqui -->
+        </div>
+        
+        <div class="passos">
+            <h2><i class="fas fa-list-ol"></i> Como Configurar</h2>
+            <ol>
+                <li>Acesse o <a href="https://supabase.com" target="_blank" style="color:#ffdd59;">Supabase</a> e faça login</li>
+                <li>Vá em <code>Settings → API</code></li>
+                <li>Copie a <strong>Project URL</strong></li>
+                <li>Copie a <strong>anon public</strong> key</li>
+                <li>Cole nos campos acima</li>
+                <li>Clique em "Testar Conexão"</li>
+            </ol>
+        </div>
+        
+        <div class="creditos">
+            <p>Sistema de Transferências Caio & Itallo</p>
+            <p>Teste de conexão com banco de dados</p>
+        </div>
+    </div>
+
+    <script>
+        // Font Awesome (se necessário)
+        if (!document.querySelector('link[href*="font-awesome"]')) {
+            const faLink = document.createElement('link');
+            faLink.rel = 'stylesheet';
+            faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+            document.head.appendChild(faLink);
+        }
+
+        async function testarConexao() {
+            const url = document.getElementById('supabase-url').value;
+            const key = document.getElementById('supabase-key').value;
+            const table = document.getElementById('table-name').value;
+            
+            const resultadoDiv = document.getElementById('resultado');
+            
+            // Validar entrada
+            if (!url || !key) {
+                resultadoDiv.innerHTML = `
+                    <h3><i class="fas fa-times-circle"></i> Campos obrigatórios</h3>
+                    <p>Preencha a URL e a chave do Supabase</p>
+                `;
+                resultadoDiv.className = 'resultado error';
+                return;
+            }
+            
+            // Mostrar loading
+            resultadoDiv.innerHTML = `
+                <h3><i class="fas fa-spinner fa-spin"></i> Testando conexão...</h3>
+                <p>Aguarde, estamos conectando ao banco de dados...</p>
+            `;
+            resultadoDiv.className = 'resultado';
+            
+            try {
+                // 1. Tentar criar cliente Supabase
+                const supabase = window.supabase.createClient(url, key);
+                
+                // 2. Testar conexão com uma consulta simples
+                const { data, error, count } = await supabase
+                    .from(table)
+                    .select('*', { count: 'exact' })
+                    .limit(1);
+                
+                if (error) {
+                    // Se der erro na tabela, pode ser que ela não exista
+                    // Tentar criar uma linha de teste
+                    const { data: insertData, error: insertError } = await supabase
+                        .from(table)
+                        .insert([
+                            { 
+                                direcao: 'teste', 
+                                valor: 1.00, 
+                                descricao: 'Registro de teste', 
+                                data: new Date().toISOString().split('T')[0] 
+                            }
+                        ])
+                        .select();
+                    
+                    if (insertError) {
+                        throw new Error(`Erro na tabela: ${insertError.message}`);
+                    }
+                    
+                    // Se inseriu com sucesso, deletar o registro de teste
+                    await supabase
+                        .from(table)
+                        .delete()
+                        .eq('id', insertData[0].id);
+                    
+                    resultadoDiv.innerHTML = `
+                        <h3><i class="fas fa-check-circle"></i> Conexão bem-sucedida! ✅</h3>
+                        <p><strong>Tabela criada/testada com sucesso!</strong></p>
+                        <p>A tabela <code>${table}</code> está acessível e funcionando.</p>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Status:</strong> <span class="status online">ONLINE</span></p>
+                        <p><strong>Próximo passo:</strong> Copie estas configurações para o sistema principal:</p>
+                        <pre>
+const SUPABASE_URL = '${url}';
+const SUPABASE_KEY = '${key}';
+const TABLE_NAME = '${table}';</pre>
+                        <button class="btn-teste" onclick="copiarConfig()" style="margin-top: 15px;">
+                            <i class="fas fa-copy"></i> Copiar Configurações
+                        </button>
+                    `;
+                    resultadoDiv.className = 'resultado success';
+                    
+                } else {
+                    // Conexão bem-sucedida com dados existentes
+                    resultadoDiv.innerHTML = `
+                        <h3><i class="fas fa-check-circle"></i> Conexão bem-sucedida! ✅</h3>
+                        <p><strong>Conexão estabelecida com sucesso!</strong></p>
+                        <p><strong>URL:</strong> ${url}</p>
+                        <p><strong>Tabela:</strong> ${table}</p>
+                        <p><strong>Registros encontrados:</strong> ${count || 0}</p>
+                        <p><strong>Status:</strong> <span class="status online">ONLINE</span></p>
+                        <p><strong>Próximo passo:</strong> Copie estas configurações para o sistema principal:</p>
+                        <pre>
+const SUPABASE_URL = '${url}';
+const SUPABASE_KEY = '${key}';
+const TABLE_NAME = '${table}';</pre>
+                        <button class="btn-teste" onclick="copiarConfig()" style="margin-top: 15px;">
+                            <i class="fas fa-copy"></i> Copiar Configurações
+                        </button>
+                    `;
+                    resultadoDiv.className = 'resultado success';
+                }
+                
+            } catch (error) {
+                console.error('Erro no teste:', error);
+                
+                resultadoDiv.innerHTML = `
+                    <h3><i class="fas fa-times-circle"></i> Falha na conexão ❌</h3>
+                    <p><strong>Erro:</strong> ${error.message}</p>
+                    <p><strong>Possíveis causas:</strong></p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>URL do Supabase incorreta</li>
+                        <li>Chave pública inválida</li>
+                        <li>Tabela não existe no banco</li>
+                        <li>Permissões não configuradas</li>
+                        <li>Problema de rede</li>
+                    </ul>
+                    <p><strong>Status:</strong> <span class="status offline">OFFLINE</span></p>
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                        <strong>SQL para criar a tabela:</strong>
+                        <pre style="margin-top: 10px;">
+CREATE TABLE ${table} (
+  id BIGSERIAL PRIMARY KEY,
+  direcao TEXT NOT NULL,
+  valor NUMERIC NOT NULL,
+  descricao TEXT,
+  data DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);</pre>
+                    </div>
+                `;
+                resultadoDiv.className = 'resultado error';
+            }
+        }
+        
+        function copiarConfig() {
+            const url = document.getElementById('supabase-url').value;
+            const key = document.getElementById('supabase-key').value;
+            const table = document.getElementById('table-name').value;
+            
+            const configText = `const SUPABASE_URL = '${url}';\nconst SUPABASE_KEY = '${key}';\nconst TABLE_NAME = '${table}';`;
+            
+            navigator.clipboard.writeText(configText)
+                .then(() => {
+                    alert('Configurações copiadas para a área de transferência!');
+                })
+                .catch(err => {
+                    console.error('Erro ao copiar:', err);
+                    alert('Não foi possível copiar. Copie manualmente do texto acima.');
+                });
+        }
+        
+        // Testar automaticamente se houver dados salvos
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedUrl = localStorage.getItem('supabase_test_url');
+            const savedKey = localStorage.getItem('supabase_test_key');
+            
+            if (savedUrl && savedKey) {
+                document.getElementById('supabase-url').value = savedUrl;
+                document.getElementById('supabase-key').value = savedKey;
+            }
+        });
+        
+        // Salvar dados ao testar
+        window.testarConexao = async function() {
+            const url = document.getElementById('supabase-url').value;
+            const key = document.getElementById('supabase-key').value;
+            
+            localStorage.setItem('supabase_test_url', url);
+            localStorage.setItem('supabase_test_key', key);
+            
+            await testarConexao();
+        };
+    </script>
+</body>
+</html>
