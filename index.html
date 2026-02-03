@@ -3,65 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Empréstimos - Caio & Itallo</title>
+    <title>Controle de Transferências - Caio & Itallo</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-exchange-alt"></i> Controle de Empréstimos</h1>
-            <p class="subtitle">Caio & Itallo - Apenas empréstimos entre amigos</p>
-            <div class="senha-info">
-                <i class="fas fa-key"></i> Senha para excluir: <strong>amigos123</strong>
-            </div>
+            <h1><i class="fas fa-exchange-alt"></i> Controle de Transferências</h1>
+            <p class="subtitle">Caio & Itallo - Registro de transferências entre amigos</p>
         </header>
         
         <div class="resumo-container">
             <div class="resumo-card">
-                <div class="resumo-titulo">Resumo</div>
+                <div class="resumo-titulo">Saldos Atuais</div>
                 <div class="resumo-content">
-                    <div class="resumo-item">
-                        <span class="resumo-label">Caio deve:</span>
-                        <span class="resumo-valor negativo" id="caio-deve">R$ 0,00</span>
+                    <div class="resumo-item caio-saldo">
+                        <div class="resumo-pessoa">
+                            <i class="fas fa-user-circle caio-icon"></i>
+                            <span class="resumo-label">Saldo do Caio:</span>
+                        </div>
+                        <span class="resumo-valor" id="saldo-caio">R$ 0,00</span>
                     </div>
-                    <div class="resumo-item">
-                        <span class="resumo-label">Itallo deve:</span>
-                        <span class="resumo-valor positivo" id="itallo-deve">R$ 0,00</span>
-                    </div>
-                    <div class="resumo-item total">
-                        <span class="resumo-label">Saldo final:</span>
-                        <span class="resumo-valor" id="saldo-final">R$ 0,00</span>
+                    <div class="resumo-item itallo-saldo">
+                        <div class="resumo-pessoa">
+                            <i class="fas fa-user-circle itallo-icon"></i>
+                            <span class="resumo-label">Saldo do Itallo:</span>
+                        </div>
+                        <span class="resumo-valor" id="saldo-itallo">R$ 0,00</span>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="form-container">
-            <h2><i class="fas fa-plus-circle"></i> Novo Empréstimo</h2>
-            <form id="form-emprestimo">
+            <h2><i class="fas fa-plus-circle"></i> Nova Transferência</h2>
+            <form id="form-transferencia">
                 <div class="form-group">
-                    <label for="de-quem">Quem emprestou?</label>
+                    <label for="de-quem">Transferência</label>
                     <div class="radio-group">
                         <div class="radio-option">
-                            <input type="radio" id="caio-emprestou" name="de-quem" value="caio-para-itallo" required checked>
-                            <label for="caio-emprestou">
-                                <i class="fas fa-user-circle caio-icon"></i>
-                                <span>Caio emprestou para Itallo</span>
+                            <input type="radio" id="caio-para-itallo" name="transferencia" value="caio-para-itallo" required checked>
+                            <label for="caio-para-itallo">
+                                <i class="fas fa-arrow-right caio-icon"></i>
+                                <span>Caio transferiu para Itallo</span>
                             </label>
                         </div>
                         <div class="radio-option">
-                            <input type="radio" id="itallo-emprestou" name="de-quem" value="itallo-para-caio" required>
-                            <label for="itallo-emprestou">
-                                <i class="fas fa-user-circle itallo-icon"></i>
-                                <span>Itallo emprestou para Caio</span>
+                            <input type="radio" id="itallo-para-caio" name="transferencia" value="itallo-para-caio" required>
+                            <label for="itallo-para-caio">
+                                <i class="fas fa-arrow-left itallo-icon"></i>
+                                <span>Itallo transferiu para Caio</span>
                             </label>
                         </div>
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="valor">Valor do empréstimo (R$)</label>
+                    <label for="valor">Valor da transferência (R$)</label>
                     <input type="number" id="valor" min="0.01" step="0.01" placeholder="Ex: 100.50" required>
                 </div>
                 
@@ -78,7 +77,7 @@
                 </div>
                 
                 <button type="submit" id="btn-registrar">
-                    <i class="fas fa-save"></i> Registrar Empréstimo
+                    <i class="fas fa-save"></i> Registrar Transferência
                 </button>
                 <button type="button" id="btn-limpar" class="btn-limpar">
                     <i class="fas fa-broom"></i> Limpar Formulário
@@ -88,21 +87,21 @@
         
         <div class="historico-container">
             <div class="historico-header">
-                <h2><i class="fas fa-history"></i> Histórico de Empréstimos</h2>
+                <h2><i class="fas fa-history"></i> Histórico de Transferências</h2>
                 <div class="historico-stats">
-                    <span id="total-emprestimos">0 empréstimos</span>
+                    <span id="total-transferencias">0 transferências</span>
                     <span id="valor-total">Total: R$ 0,00</span>
                 </div>
             </div>
             
             <div id="historico-lista">
-                <div class="lista-emprestimos" id="lista-emprestimos">
-                    <!-- Empréstimos serão adicionados aqui -->
+                <div class="lista-transferencias" id="lista-transferencias">
+                    <!-- Transferências serão adicionadas aqui -->
                 </div>
                 <div id="sem-dados" class="sem-dados">
                     <i class="fas fa-clipboard-list fa-2x"></i>
-                    <p>Nenhum empréstimo registrado ainda</p>
-                    <p>Registre seu primeiro empréstimo acima</p>
+                    <p>Nenhuma transferência registrada ainda</p>
+                    <p>Registre sua primeira transferência acima</p>
                 </div>
             </div>
         </div>
@@ -125,8 +124,8 @@
         
         <footer>
             <div class="footer-content">
-                <p><i class="fas fa-info-circle"></i> Sistema de empréstimos Caio & Itallo</p>
-                <p><i class="fas fa-key"></i> Senha para excluir: <strong>amigos123</strong></p>
+                <p><i class="fas fa-info-circle"></i> Sistema de transferências Caio & Itallo</p>
+                <p><i class="fas fa-database"></i> Dados salvos apenas neste navegador</p>
                 <p>Para sincronizar: Exporte e envie o arquivo para o outro</p>
             </div>
         </footer>
@@ -135,17 +134,15 @@
     <!-- Toast Notificação -->
     <div id="toast" class="toast"></div>
 
-    <!-- Modal de Senha -->
-    <div id="senha-modal" class="modal">
+    <!-- Modal de Confirmação -->
+    <div id="confirm-modal" class="modal">
         <div class="modal-content">
-            <h3><i class="fas fa-lock"></i> Digite a Senha</h3>
-            <p>Para excluir um registro, digite a senha:</p>
-            <input type="password" id="senha-input" placeholder="Digite a senha" autocomplete="off">
+            <h3><i class="fas fa-exclamation-triangle"></i> Confirmar</h3>
+            <p id="confirm-message">Tem certeza que deseja excluir esta transferência?</p>
             <div class="modal-buttons">
                 <button id="btn-cancelar" class="btn-cancelar">Cancelar</button>
-                <button id="btn-confirmar-senha" class="btn-confirmar">Confirmar</button>
+                <button id="btn-confirmar" class="btn-confirmar">Excluir</button>
             </div>
-            <div class="senha-erro" id="senha-erro"></div>
         </div>
     </div>
 

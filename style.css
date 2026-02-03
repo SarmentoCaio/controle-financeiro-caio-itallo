@@ -51,27 +51,6 @@ h1 {
 .subtitle {
     color: var(--gray-color);
     font-size: 1rem;
-    margin-bottom: 10px;
-}
-
-.senha-info {
-    background-color: #e8f4fc;
-    color: var(--primary-color);
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.senha-info strong {
-    font-family: monospace;
-    background-color: #f8f9fa;
-    padding: 2px 8px;
-    border-radius: 4px;
-    border: 1px solid #b3d4fc;
 }
 
 /* Resumo */
@@ -89,7 +68,7 @@ h1 {
 .resumo-titulo {
     font-size: 1.2rem;
     color: var(--dark-color);
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     font-weight: 600;
     text-align: center;
 }
@@ -97,38 +76,43 @@ h1 {
 .resumo-content {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 15px;
 }
 
 .resumo-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
-    background-color: #f8f9fa;
+    padding: 15px;
     border-radius: 8px;
     transition: var(--transition);
 }
 
-.resumo-item:hover {
-    background-color: #e9ecef;
-    transform: translateX(5px);
+.resumo-item.caio-saldo {
+    background-color: rgba(52, 152, 219, 0.1);
+    border: 2px solid var(--caio-color);
 }
 
-.resumo-item.total {
-    background-color: #e8f4fc;
-    border: 2px solid var(--primary-color);
-    margin-top: 10px;
+.resumo-item.itallo-saldo {
+    background-color: rgba(231, 76, 60, 0.1);
+    border: 2px solid var(--itallo-color);
+}
+
+.resumo-pessoa {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .resumo-label {
     font-weight: 600;
     color: var(--dark-color);
+    font-size: 1rem;
 }
 
 .resumo-valor {
     font-weight: bold;
-    font-size: 1.1rem;
+    font-size: 1.3rem;
 }
 
 .resumo-valor.positivo {
@@ -137,6 +121,14 @@ h1 {
 
 .resumo-valor.negativo {
     color: var(--danger-color);
+}
+
+.caio-icon {
+    color: var(--caio-color);
+}
+
+.itallo-icon {
+    color: var(--itallo-color);
 }
 
 /* Formulário */
@@ -171,8 +163,7 @@ label {
 
 input[type="number"],
 input[type="text"],
-input[type="date"],
-input[type="password"] {
+input[type="date"] {
     width: 100%;
     padding: 14px;
     border: 2px solid #e0e0e0;
@@ -225,12 +216,14 @@ input:focus {
     font-size: 1rem;
 }
 
-.caio-icon {
-    color: var(--caio-color);
+.radio-option.caio-selecionado {
+    border-color: var(--caio-color);
+    background-color: rgba(52, 152, 219, 0.05);
 }
 
-.itallo-icon {
-    color: var(--itallo-color);
+.radio-option.itallo-selecionado {
+    border-color: var(--itallo-color);
+    background-color: rgba(231, 76, 60, 0.05);
 }
 
 /* Botões */
@@ -290,12 +283,12 @@ button:hover {
     color: var(--gray-color);
 }
 
-#lista-emprestimos {
+#lista-transferencias {
     max-height: 400px;
     overflow-y: auto;
 }
 
-.emprestimo-item {
+.transferencia-item {
     background-color: #f8f9fa;
     border-radius: 8px;
     padding: 15px;
@@ -304,57 +297,57 @@ button:hover {
     transition: var(--transition);
 }
 
-.emprestimo-item:hover {
+.transferencia-item:hover {
     background-color: #e9ecef;
     transform: translateX(5px);
 }
 
-.emprestimo-item.caio {
+.transferencia-item.caio {
     border-left-color: var(--caio-color);
 }
 
-.emprestimo-item.itallo {
+.transferencia-item.itallo {
     border-left-color: var(--itallo-color);
 }
 
-.emprestimo-header {
+.transferencia-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
 }
 
-.emprestimo-pessoa {
+.transferencia-direcao {
     font-weight: 600;
     font-size: 1rem;
 }
 
-.emprestimo-pessoa.caio {
+.transferencia-direcao.caio {
     color: var(--caio-color);
 }
 
-.emprestimo-pessoa.itallo {
+.transferencia-direcao.itallo {
     color: var(--itallo-color);
 }
 
-.emprestimo-data {
+.transferencia-data {
     color: var(--gray-color);
     font-size: 0.9rem;
 }
 
-.emprestimo-valor {
+.transferencia-valor {
     font-weight: bold;
     font-size: 1.2rem;
     margin: 5px 0;
 }
 
-.emprestimo-descricao {
+.transferencia-descricao {
     color: var(--gray-color);
     font-size: 0.9rem;
     margin-top: 5px;
 }
 
-.emprestimo-acoes {
+.transferencia-acoes {
     display: flex;
     justify-content: flex-end;
     margin-top: 10px;
@@ -532,29 +525,17 @@ footer {
 }
 
 .btn-confirmar {
-    background-color: var(--primary-color);
+    background-color: var(--danger-color);
     width: auto;
     padding: 10px 20px;
 }
 
 .btn-confirmar:hover {
-    background-color: #3a5a80;
+    background-color: #c0392b;
 }
 
 .btn-cancelar:hover {
     background-color: #5a6268;
-}
-
-.senha-erro {
-    color: var(--danger-color);
-    font-size: 0.9rem;
-    margin-top: 10px;
-    min-height: 20px;
-    display: none;
-}
-
-.senha-erro.show {
-    display: block;
 }
 
 /* Responsividade */
@@ -575,12 +556,6 @@ footer {
     .resumo-item {
         flex: 1;
         margin: 0 5px;
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .resumo-item.total {
-        margin-top: 0;
     }
 }
 
@@ -596,6 +571,16 @@ footer {
     }
     
     .modal-buttons {
+        flex-direction: column;
+    }
+    
+    .resumo-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .resumo-pessoa {
         flex-direction: column;
     }
 }
