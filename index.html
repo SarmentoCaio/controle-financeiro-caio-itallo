@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Transferências - Caio & Itallo</title>
+    <title>Meu Dinheirinho - Controle Financeiro</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -18,8 +20,25 @@
         </div>
 
         <header>
-            <h1><i class="fas fa-exchange-alt"></i> Controle de Transferências</h1>
-            <p class="subtitle">Caio & Itallo - Dados sincronizados em tempo real</p>
+            <div class="header-content">
+                <div class="logo-title">
+                    <img src="Uteis/Logo.png" alt="Logo Meu Dinheirinho" class="logo">
+                    <div class="title-container">
+                        <h1><i class="fas fa-coins"></i> Meu Dinheirinho</h1>
+                        <p class="subtitle">Controle de Transferências - Caio & Itallo</p>
+                    </div>
+                </div>
+                <div class="header-info">
+                    <div class="info-item">
+                        <i class="fas fa-database"></i>
+                        <span>Banco de dados online</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Dados sincronizados</span>
+                    </div>
+                </div>
+            </div>
         </header>
         
         <div class="resumo-container">
@@ -119,9 +138,9 @@
         
         <footer>
             <div class="footer-content">
-                <p><i class="fas fa-database"></i> Banco de dados online Supabase</p>
-                <p><i class="fas fa-sync-alt"></i> Dados sincronizados em tempo real</p>
-                <p>Caio e Itallo veem as mesmas informações</p>
+                <p><i class="fas fa-code"></i> Desenvolvido para registrar o descontrole financeiro</p>
+                <p><i class="fas fa-shield-alt"></i> Sistema seguro e sincronizado</p>
+                <p>Caio e Itallo - Meu Dinheirinho © 2026</p>
             </div>
         </footer>
     </div>
@@ -132,11 +151,24 @@
     <!-- Modal de Confirmação -->
     <div id="confirm-modal" class="modal">
         <div class="modal-content">
-            <h3><i class="fas fa-exclamation-triangle"></i> Confirmar</h3>
+            <h3><i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão</h3>
             <p id="confirm-message">Tem certeza que deseja excluir esta transferência?</p>
             <div class="modal-buttons">
                 <button id="btn-cancelar" class="btn-cancelar">Cancelar</button>
-                <button id="btn-confirmar" class="btn-confirmar">Excluir</button>
+                <button id="btn-confirmar" class="btn-confirmar">Sim, Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Senha para Excluir -->
+    <div id="modal-senha" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-lock"></i> Confirmação de Exclusão</h3>
+            <p id="mensagem-senha">Digite a senha para excluir a transferência:</p>
+            <input type="password" id="senha-admin" placeholder="Digite a senha" autocomplete="off">
+            <div class="modal-buttons">
+                <button id="btn-cancelar-senha" class="btn-cancelar">Cancelar</button>
+                <button id="btn-verificar-senha" class="btn-confirmar">Verificar Senha</button>
             </div>
         </div>
     </div>
